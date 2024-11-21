@@ -4,6 +4,8 @@ Aplicación móvil en Android con Kotlin que permita a una comunidad
 local gestionar eventos y actividades comunitarias. La aplicación debe facilitar la creación y
 organización de eventos, así como la gestión de la participación de los usuarios.
 
+Link del tablero en trello: [Tablero](https://trello.com/invite/b/673e9038aa4c47b508b0f276/ATTIc2d79e71f4e73ccafcf72c5a006cb216F3BDB641/dsm-proyecto-2)
+
 ## Integrantes
 
 - Alas Linares Alejandro Antonio AL192188
