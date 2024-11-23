@@ -36,8 +36,11 @@ import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.udb.comunidad_dsm.ui.BottomNavigationBar
+import com.udb.comunidad_dsm.ui.EventsScreen
 import com.udb.comunidad_dsm.ui.HomeScreen
 import com.udb.comunidad_dsm.ui.LoginScreen
+import com.udb.comunidad_dsm.ui.UserScreen
 import com.udb.comunidad_dsm.ui.theme.Proyecto2DSMTheme
 
 class MainActivity : ComponentActivity() {
@@ -146,6 +149,19 @@ fun App(
         // Change the variable to this and use Overview as a backup screen if this returns null
         val currentScreen = screens.find { it.route == currentDestination?.route } ?: Login
         Scaffold(
+            bottomBar = {
+                if (currentScreen.route in menuScreens.map { it.route }) {
+                    BottomNavigationBar(
+                        navigateTo = { route ->
+                            navController.navigateSingleTopTo(route)
+                        },
+                        currentRoute = currentScreen,
+                        screens = menuScreens,
+                        backgroundColor = MaterialTheme.colorScheme.primary,
+                        secondaryColor = MaterialTheme.colorScheme.inversePrimary,
+                    )
+                }
+            }
         ) { innerPadding ->
             NavHost(
                 navController = navController,
@@ -174,6 +190,25 @@ fun App(
                         }
                     )
                 }
+
+                composable(route = Events.route) {
+                    EventsScreen(
+                        navigateTo = { route ->
+                            navController.navigateSingleTopTo(route)
+                        },
+                        auth = auth
+                    )
+                }
+
+                composable(route = Configuration.route) {
+                    UserScreen(
+                        navigateTo = { route ->
+                            navController.navigateSingleTopTo(route)
+                        },
+                        auth = auth
+                    )
+                }
+
             }
         }
     }

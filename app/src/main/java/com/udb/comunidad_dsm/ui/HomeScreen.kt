@@ -34,17 +34,5 @@ fun HomeScreen(navigateTo: (route: String) -> Unit, auth: FirebaseAuth) {
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )
-        Button(
-            onClick = {
-                auth.signOut()
-                navigateTo(Login.route)
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .padding(top = 20.dp),
-        ) {
-            Text("Cerrar Sesión", modifier = Modifier.padding(vertical = 5.dp))
-        }
     }
 }
