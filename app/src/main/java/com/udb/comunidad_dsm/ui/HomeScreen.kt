@@ -13,10 +13,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.firebase.auth.FirebaseAuth
 import com.udb.comunidad_dsm.Login
 
 @Composable
-fun HomeScreen(navigateTo: (route: String) -> Unit) {
+fun HomeScreen(navigateTo: (route: String) -> Unit, auth: FirebaseAuth) {
+    val usuario = auth.currentUser;
     // Home screen UI for logged-in users
     Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center) {
         Text(
@@ -27,12 +29,14 @@ fun HomeScreen(navigateTo: (route: String) -> Unit) {
             modifier = Modifier.fillMaxWidth()
         )
         Text(
-            "Usuario", fontSize = 22.sp,
+            text = usuario?.email ?: "",
+            fontSize = 22.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )
         Button(
             onClick = {
+                auth.signOut()
                 navigateTo(Login.route)
             },
             modifier = Modifier
