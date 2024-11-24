@@ -7,9 +7,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Icon
+import androidx.compose.material3.FabPosition
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -21,7 +25,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavHostController
@@ -37,6 +43,7 @@ import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.udb.comunidad_dsm.ui.BottomNavigationBar
+import com.udb.comunidad_dsm.ui.EventsFormScreen
 import com.udb.comunidad_dsm.ui.EventsScreen
 import com.udb.comunidad_dsm.ui.HomeScreen
 import com.udb.comunidad_dsm.ui.LoginScreen
@@ -161,7 +168,27 @@ fun App(
                         secondaryColor = MaterialTheme.colorScheme.inversePrimary,
                     )
                 }
-            }
+            },
+            floatingActionButton = {
+                if (currentScreen.route in fabScreens.map { it.route }) {
+                    FloatingActionButton(
+                        onClick = {
+                            val currentAction = fabActions.find { it.route == currentDestination?.route }
+                            currentAction?.action?.invoke { route ->
+                                navController.navigateSingleTopTo(route)
+                            }
+                        },
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.add),
+                            contentDescription = "Add event",
+                            tint = Color.White
+                        )
+                    }
+                }
+            },
+            floatingActionButtonPosition = FabPosition.End // Position the FAB
         ) { innerPadding ->
             NavHost(
                 navController = navController,
@@ -206,6 +233,17 @@ fun App(
                             navController.navigateSingleTopTo(route)
                         },
                         auth = auth
+                    )
+                }
+
+                composable(route = EventsForm.route) {
+                    EventsFormScreen(
+                        navigateTo = { route ->
+                            navController.navigateSingleTopTo(route)
+                        },
+                        auth = auth,
+                        backgroundColor = MaterialTheme.colorScheme.primary,
+                        navController = navController
                     )
                 }
 

@@ -16,6 +16,10 @@ interface DestinationMenu: Destination {
     val title: String
 }
 
+interface FABAction: Destination {
+    val action: (navigateTo: (route: String) -> Unit) -> Unit
+}
+
 /**
  * Navigation destinations
  */
@@ -37,10 +41,21 @@ object Events : Destination {
     override val route = "events"
 }
 
+object EventsForm : Destination {
+    override val route = "events-form"
+}
+
 object EventsMenu: DestinationMenu {
     override val route = Events.route
     override val icon = R.drawable.calendar_today_white
     override val title = "Eventos"
+}
+
+object EventsFABAction: FABAction {
+    override val route = Events.route
+    override val action: ((String) -> Unit) -> Unit = {
+        it(EventsForm.route)
+    }
 }
 
 object Configuration : Destination {
@@ -53,5 +68,7 @@ object ConfigurationMenu: DestinationMenu {
     override val title = "Usuario"
 }
 
-val screens = listOf(Home, Login, Events, Configuration)
+val screens = listOf(Home, Login, Events, Configuration, EventsForm)
 val menuScreens = listOf(HomeMenu, EventsMenu, ConfigurationMenu)
+val fabScreens = listOf(Events)
+val fabActions = listOf(EventsFABAction)
