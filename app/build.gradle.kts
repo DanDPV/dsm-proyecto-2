@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.udb.comunidad_dsm"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -52,11 +52,14 @@ android {
 
 dependencies {
     val nav_version = "2.8.4"
+    val sheets_compose_version = "1.3.0"
     implementation(platform("com.google.firebase:firebase-bom:33.6.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.android.gms:play-services-auth:21.2.0")
     implementation("androidx.navigation:navigation-compose:$nav_version")
     implementation("androidx.compose.material:material:1.7.5")
+    implementation("com.maxkeppeler.sheets-compose-dialogs:calendar:$sheets_compose_version")
+    implementation("com.maxkeppeler.sheets-compose-dialogs:clock:$sheets_compose_version")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

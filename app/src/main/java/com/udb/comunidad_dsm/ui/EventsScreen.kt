@@ -19,7 +19,7 @@ import com.udb.comunidad_dsm.Login
 @Composable
 fun EventsScreen(navigateTo: (route: String) -> Unit, auth: FirebaseAuth) {
     val usuario = auth.currentUser;
-    // Home screen UI for logged-in users
+
     Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center) {
         Text(
             "Eventos",
