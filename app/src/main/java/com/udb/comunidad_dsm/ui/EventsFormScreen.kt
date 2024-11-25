@@ -12,12 +12,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Icon
 import androidx.compose.material.TopAppBar
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,6 +42,9 @@ import com.maxkeppeler.sheets.clock.ClockDialog
 import com.maxkeppeler.sheets.clock.models.ClockConfig
 import com.maxkeppeler.sheets.clock.models.ClockSelection
 import com.udb.comunidad_dsm.R
+import com.udb.comunidad_dsm.db.addEvent
+import com.udb.comunidad_dsm.db.dto.Event
+import com.udb.comunidad_dsm.mergeDateAndTimeToIso
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -79,6 +84,8 @@ fun EventsFormScreen(
     var descripcionError by remember { mutableStateOf(false) }
     var ubicacion by remember { mutableStateOf("") }
     var ubicacionError by remember { mutableStateOf(false) }
+
+    val openDialog = remember { mutableStateOf(false) }
 
     fun validarDescripcion() {
         descripcionError = descripcion.isEmpty()
@@ -248,7 +255,23 @@ fun EventsFormScreen(
                     validarSelectedTime()
 
                     if (!ubicacionError && !descripcionError && !selectedDateError && !selectedTimeError) {
-                        // Agregar
+                        val isoDate = mergeDateAndTimeToIso(date = selectedLocalDate, time = selectedLocalTime)
+                        val event = Event(
+                            date = isoDate,
+                            location = ubicacion,
+                            description = descripcion
+                        )
+
+                        addEvent(
+                            event = event,
+                            onSuccess = { documentId ->
+                                navController.popBackStack()
+                            },
+                            onFailure = { exception ->
+                                println("Error adding user: ${exception.message}")
+                                openDialog.value = true
+                            }
+                        )
                     }
                 },
                 modifier = Modifier
@@ -257,6 +280,24 @@ fun EventsFormScreen(
                     .padding(top = 20.dp),
             ) {
                 Text("Agregar evento", modifier = Modifier.padding(vertical = 5.dp))
+            }
+            if (openDialog.value) {
+                AlertDialog(
+                    onDismissRequest = {
+                        // Dismiss the dialog when the user clicks outside the dialog or on the back
+                        // button. If you want to disable that functionality, simply use an empty
+                        // onDismissRequest.
+                        openDialog.value = false
+                    },
+                    title = { Text(text = "Error") },
+                    text = { Text(text = "No se pudo realizar la acción, por favor intente de nuevo más tarde.") },
+                    confirmButton = {
+                        TextButton(onClick = { openDialog.value = false }) { Text("Ok") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { openDialog.value = false }) { Text("Cerrar") }
+                    }
+                )
             }
 
         }

@@ -42,6 +42,8 @@ import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 import com.udb.comunidad_dsm.ui.BottomNavigationBar
 import com.udb.comunidad_dsm.ui.EventsFormScreen
 import com.udb.comunidad_dsm.ui.EventsScreen
@@ -146,6 +148,7 @@ fun App(
         val currentBackStack by navController.currentBackStackEntryAsState()
         val currentDestination = currentBackStack?.destination
         val auth: FirebaseAuth = FirebaseAuth.getInstance()
+        val db = Firebase.firestore
 
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken("1052594127252-ui7d1r7up91g1d9hc5968m7rbnl720kq.apps.googleusercontent.com")

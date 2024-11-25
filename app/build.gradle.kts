@@ -60,6 +60,7 @@ dependencies {
     implementation("androidx.compose.material:material:1.7.5")
     implementation("com.maxkeppeler.sheets-compose-dialogs:calendar:$sheets_compose_version")
     implementation("com.maxkeppeler.sheets-compose-dialogs:clock:$sheets_compose_version")
+    implementation("com.google.firebase:firebase-firestore")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
