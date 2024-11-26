@@ -1,6 +1,8 @@
 package com.udb.comunidad_dsm
 
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.udb.comunidad_dsm.ui.HomeScreen
 import com.udb.comunidad_dsm.ui.LoginScreen
 
@@ -43,6 +45,13 @@ object Events : Destination {
 
 object EventsForm : Destination {
     override val route = "events-form"
+    const val idTypeArg = "id"
+    val routeWithArgs = "${route}/{${idTypeArg}}"
+    val arguments = listOf(
+        navArgument(idTypeArg) { type = NavType.StringType
+        nullable = true
+        }
+    )
 }
 
 object EventsMenu: DestinationMenu {

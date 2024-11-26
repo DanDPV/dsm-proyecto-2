@@ -44,6 +44,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.udb.comunidad_dsm.db.getEventById
 import com.udb.comunidad_dsm.ui.BottomNavigationBar
 import com.udb.comunidad_dsm.ui.EventsFormScreen
 import com.udb.comunidad_dsm.ui.EventsScreen
@@ -178,7 +179,11 @@ fun App(
                         onClick = {
                             val currentAction = fabActions.find { it.route == currentDestination?.route }
                             currentAction?.action?.invoke { route ->
-                                navController.navigateSingleTopTo(route)
+                                if (currentAction.route == Events.route) {
+                                    navController.navigateToEventForm(null)
+                                } else {
+                                    navController.navigateSingleTopTo(route)
+                                }
                             }
                         },
                         containerColor = MaterialTheme.colorScheme.primary
@@ -226,7 +231,10 @@ fun App(
                         navigateTo = { route ->
                             navController.navigateSingleTopTo(route)
                         },
-                        auth = auth
+                        auth = auth,
+                        navigateToEventForm = { id ->
+                            navController.navigateToEventForm(id)
+                        },
                     )
                 }
 
@@ -239,14 +247,21 @@ fun App(
                     )
                 }
 
-                composable(route = EventsForm.route) {
+                composable(route = EventsForm.routeWithArgs,
+                    arguments = EventsForm.arguments) {navBackStackEntry ->
+                    val eventId =
+                        navBackStackEntry.arguments?.getString(EventsForm.idTypeArg)
                     EventsFormScreen(
                         navigateTo = { route ->
                             navController.navigateSingleTopTo(route)
                         },
                         auth = auth,
                         backgroundColor = MaterialTheme.colorScheme.primary,
-                        navController = navController
+                        navController = navController,
+                        existingEvent = eventId?.let { eventId ->
+                            // Fetch the event from Firestore (null if eventId is null)
+                            FetchEventFromFirestore(eventId)
+                        }
                     )
                 }
 
@@ -257,3 +272,7 @@ fun App(
 
 fun NavHostController.navigateSingleTopTo(route: String) =
     this.navigate(route) { launchSingleTop = true }
+
+private fun NavHostController.navigateToEventForm(id: String?) {
+    this.navigateSingleTopTo("${EventsForm.route}/$id")
+}
