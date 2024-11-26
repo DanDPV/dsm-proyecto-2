@@ -21,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,6 +45,8 @@ import com.maxkeppeler.sheets.clock.models.ClockSelection
 import com.udb.comunidad_dsm.R
 import com.udb.comunidad_dsm.db.addEvent
 import com.udb.comunidad_dsm.db.dto.Event
+import com.udb.comunidad_dsm.db.dto.EventForm
+import com.udb.comunidad_dsm.db.updateEvent
 import com.udb.comunidad_dsm.mergeDateAndTimeToIso
 import java.text.SimpleDateFormat
 import java.time.LocalDate
@@ -60,11 +63,12 @@ fun EventsFormScreen(
     navigateTo: (route: String) -> Unit,
     auth: FirebaseAuth,
     backgroundColor: Color,
-    navController: NavHostController
+    navController: NavHostController,
+    existingEvent: EventForm? = null,
 ) {
     val usuario = auth.currentUser;
     var selectedDate by remember { mutableStateOf<String>("") }
-    var selectedLocalDate by remember { mutableStateOf<LocalDate>(LocalDate.now()) }
+    var selectedLocalDate by remember { mutableStateOf<LocalDate>(existingEvent?.localDate ?: LocalDate.now()) }
     var selectedDateError by remember { mutableStateOf(false) }
     val calendarState = rememberUseCaseState()
     val disabledDates = (0L..ChronoUnit.DAYS.between(
@@ -76,13 +80,13 @@ fun EventsFormScreen(
     val calendarBoundary = (LocalDate.now().plusDays(1)..LocalDate.now().plusYears(100))
 
     var selectedTime by remember { mutableStateOf<String>("") }
-    var selectedLocalTime by remember { mutableStateOf<LocalTime>(LocalTime.now()) }
+    var selectedLocalTime by remember { mutableStateOf<LocalTime>(existingEvent?.localTime ?: LocalTime.now()) }
     var selectedTimeError by remember { mutableStateOf(false) }
     val clockState = rememberUseCaseState()
 
-    var descripcion by remember { mutableStateOf("") }
+    var descripcion by remember { mutableStateOf(existingEvent?.description ?: "") }
     var descripcionError by remember { mutableStateOf(false) }
-    var ubicacion by remember { mutableStateOf("") }
+    var ubicacion by remember { mutableStateOf(existingEvent?.location ?: "") }
     var ubicacionError by remember { mutableStateOf(false) }
 
     val openDialog = remember { mutableStateOf(false) }
@@ -103,10 +107,69 @@ fun EventsFormScreen(
         selectedTimeError = selectedTime.isEmpty()
     }
 
+    fun handleSaveEvent() {
+        validarDescripcion()
+        validarUbicacion()
+        validarSelectedDate()
+        validarSelectedTime()
+
+        if (!descripcionError && !ubicacionError && !selectedDateError && !selectedTimeError) {
+            val isoDate = mergeDateAndTimeToIso(date = selectedLocalDate, time = selectedLocalTime)
+            val event = Event(
+                id = existingEvent?.id,
+                date = isoDate,
+                location = ubicacion,
+                description = descripcion
+            )
+
+            if (existingEvent == null) {
+                addEvent(
+                    event = event,
+                    onSuccess = { documentId ->
+                        navController.popBackStack()
+                    },
+                    onFailure = { exception ->
+                        println("No se pudo añadir el evento: ${exception.message}")
+                        openDialog.value = true
+                    }
+                )
+            } else {
+                updateEvent(event,
+                    onSuccess = {
+                        navController.popBackStack()
+                    },
+                    onFailure = {
+                        openDialog.value = true
+                    }
+                )
+            }
+        }
+    }
+
+    LaunchedEffect(existingEvent) {
+        if (existingEvent != null) {
+            val date =
+                Date.from(existingEvent.localDate.atStartOfDay(ZoneId.systemDefault()).toInstant())
+            val dateString =
+                SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(date)
+            selectedDate = dateString
+            selectedLocalDate = existingEvent.localDate // Parse ISO date
+            selectedLocalTime = existingEvent.localTime
+            val localDateTime = LocalDateTime.of(LocalDate.now(), selectedLocalTime)
+            val dateTime =
+                Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant())
+            val timeString =
+                SimpleDateFormat("hh:mm a", Locale.getDefault()).format(dateTime)
+            selectedTime = timeString
+            descripcion = existingEvent.description
+            ubicacion = existingEvent.location
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "Agregar evento", color = Color.White) },
+                title = { Text(text = if (existingEvent == null) "Agregar Evento" else "Actualizar Evento", color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = {
                         navController.popBackStack()
@@ -249,37 +312,14 @@ fun EventsFormScreen(
             )
             Button(
                 onClick = {
-                    validarUbicacion()
-                    validarDescripcion()
-                    validarSelectedDate()
-                    validarSelectedTime()
-
-                    if (!ubicacionError && !descripcionError && !selectedDateError && !selectedTimeError) {
-                        val isoDate = mergeDateAndTimeToIso(date = selectedLocalDate, time = selectedLocalTime)
-                        val event = Event(
-                            date = isoDate,
-                            location = ubicacion,
-                            description = descripcion
-                        )
-
-                        addEvent(
-                            event = event,
-                            onSuccess = { documentId ->
-                                navController.popBackStack()
-                            },
-                            onFailure = { exception ->
-                                println("Error adding user: ${exception.message}")
-                                openDialog.value = true
-                            }
-                        )
-                    }
+                    handleSaveEvent()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
                     .padding(top = 20.dp),
             ) {
-                Text("Agregar evento", modifier = Modifier.padding(vertical = 5.dp))
+                Text(if (existingEvent == null) "Agregar Evento" else "Actualizar Evento", modifier = Modifier.padding(vertical = 5.dp))
             }
             if (openDialog.value) {
                 AlertDialog(

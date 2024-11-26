@@ -21,6 +21,48 @@ fun addEvent(event: Event, onSuccess: (String) -> Unit, onFailure: (Exception) -
         }
 }
 
+fun updateEvent(event: Event, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+    val firestore = FirebaseFirestore.getInstance()
+
+    firestore.collection(EVENTS_COLLECTION)
+        .document(event.id!!)
+        .set(event)
+        .addOnSuccessListener {
+            onSuccess()
+        }
+        .addOnFailureListener { e ->
+            onFailure(e) // Pass the exception to the caller
+        }
+}
+
+fun getEventById(id: String, onSuccess: (EventForm) -> Unit, onFailure: (Exception) -> Unit) {
+    val firestore = FirebaseFirestore.getInstance()
+
+    firestore.collection(EVENTS_COLLECTION)
+        .document(id)
+        .get()
+        .addOnSuccessListener {document ->
+            val event = document.toObject(Event::class.java) // Convert Firestore document to Event object
+            val eventForm = EventForm(
+                location = event?.location ?: "",
+                description = event?.description ?: "",
+                localDate = LocalDate.now(),
+                localTime = LocalTime.now(),
+                id = document.id,
+            )
+            if (event != null) {
+                val (date, time) = parseIsoStringToDateAndTime(event.date)
+                eventForm.localDate = date
+                eventForm.localTime = time
+            }
+
+            onSuccess(eventForm)
+        }
+        .addOnFailureListener { e ->
+            onFailure(e) // Pass the exception to the caller
+        }
+}
+
 fun getEvents(onSuccess: (List<EventForm>) -> Unit, onFailure: (Exception) -> Unit) {
     val firestore = FirebaseFirestore.getInstance()
 
@@ -33,7 +75,8 @@ fun getEvents(onSuccess: (List<EventForm>) -> Unit, onFailure: (Exception) -> Un
                     location = event?.location ?: "",
                     description = event?.description ?: "",
                     localDate = LocalDate.now(),
-                    localTime = LocalTime.now()
+                    localTime = LocalTime.now(),
+                    id = document.id,
                 )
                 if (event != null) {
                     val (date, time) = parseIsoStringToDateAndTime(event.date)
@@ -44,6 +87,20 @@ fun getEvents(onSuccess: (List<EventForm>) -> Unit, onFailure: (Exception) -> Un
                 eventForm
             }
             onSuccess(events)
+        }
+        .addOnFailureListener { e ->
+            onFailure(e) // Pass the exception to the caller
+        }
+}
+
+fun deleteEvent(id: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+    val firestore = FirebaseFirestore.getInstance()
+
+    firestore.collection(EVENTS_COLLECTION)
+        .document(id)
+        .delete()
+        .addOnSuccessListener {
+            onSuccess()
         }
         .addOnFailureListener { e ->
             onFailure(e) // Pass the exception to the caller
