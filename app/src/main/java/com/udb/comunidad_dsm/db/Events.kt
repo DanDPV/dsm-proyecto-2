@@ -1,12 +1,21 @@
 package com.udb.comunidad_dsm.db
 
+import android.util.Log
+import com.google.firebase.firestore.Filter
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.QuerySnapshot
+import com.google.firebase.firestore.toObject
 import com.udb.comunidad_dsm.db.dto.Event
+import com.udb.comunidad_dsm.db.dto.EventConfirmation
 import com.udb.comunidad_dsm.db.dto.EventForm
 import com.udb.comunidad_dsm.parseIsoStringToDateAndTime
+import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.util.Date
+import java.util.UUID
 
 fun addEvent(event: Event, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
     val firestore = FirebaseFirestore.getInstance()
@@ -104,5 +113,46 @@ fun deleteEvent(id: String, onSuccess: () -> Unit, onFailure: (Exception) -> Uni
         }
         .addOnFailureListener { e ->
             onFailure(e) // Pass the exception to the caller
+        }
+}
+
+fun getCloserEvents(onSuccess: (List<Event>) -> Unit) {
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd")
+    val currentDate = Date()
+    val firestore = FirebaseFirestore.getInstance()
+
+    firestore.collection(EVENTS_COLLECTION)
+        .where(Filter.greaterThan("date", dateFormat.format(currentDate)))
+        .orderBy("date", Query.Direction.ASCENDING)
+        .limit(5)
+        .get()
+        .addOnSuccessListener { results ->
+            val events = results.documents.mapNotNull { document ->
+                val event = document.toObject(Event::class.java)
+                event
+            }
+            onSuccess(events)
+        }
+}
+
+fun confirmParticipation(eventId: String, userId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+    val firestore = FirebaseFirestore.getInstance()
+
+    val refs = firestore.collection(EVENTS_CONFIRMATIONS)
+    val query = refs.where(Filter.and(
+        Filter.equalTo("eventId", eventId),
+        Filter.equalTo("userId", userId)
+    ))
+    query.get()
+        .addOnSuccessListener {results ->
+            if(results.documents.isEmpty()) {
+                val eventConfirmation = EventConfirmation(null, userId, eventId)
+                firestore.collection(EVENTS_CONFIRMATIONS)
+                    .add(eventConfirmation)
+                    .addOnSuccessListener { onSuccess() }
+                    .addOnFailureListener { e -> onFailure(e) }
+            } else {
+                onSuccess()
+            }
         }
 }
