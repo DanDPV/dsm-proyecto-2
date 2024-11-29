@@ -1,5 +1,6 @@
 package com.udb.comunidad_dsm.ui
 
+import android.annotation.SuppressLint
 import android.util.Range
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Arrangement
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.Icon
 import androidx.compose.material.TopAppBar
 import androidx.compose.material3.AlertDialog
@@ -44,6 +46,7 @@ import com.maxkeppeler.sheets.clock.models.ClockConfig
 import com.maxkeppeler.sheets.clock.models.ClockSelection
 import com.udb.comunidad_dsm.R
 import com.udb.comunidad_dsm.db.addEvent
+import com.udb.comunidad_dsm.db.confirmParticipation
 import com.udb.comunidad_dsm.db.dto.Event
 import com.udb.comunidad_dsm.db.dto.EventForm
 import com.udb.comunidad_dsm.db.updateEvent
@@ -57,6 +60,7 @@ import java.time.temporal.ChronoUnit
 import java.util.Date
 import java.util.Locale
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EventsFormScreen(
@@ -91,6 +95,8 @@ fun EventsFormScreen(
 
     val openDialog = remember { mutableStateOf(false) }
 
+    var showEditForm = remember { mutableStateOf(false) }
+    var openConfirmationDialog = remember { mutableStateOf(false) }
     fun validarDescripcion() {
         descripcionError = descripcion.isEmpty()
     }
@@ -146,6 +152,19 @@ fun EventsFormScreen(
         }
     }
 
+    fun confirmParticipationHandler() {
+        if(existingEvent != null && usuario != null) {
+            confirmParticipation(existingEvent.id, usuario.uid,
+                onSuccess = {
+                    openConfirmationDialog.value = true
+                },
+                onFailure = {
+                    navController.popBackStack()
+                }
+            )
+        }
+    }
+
     LaunchedEffect(existingEvent) {
         if (existingEvent != null) {
             val date =
@@ -166,10 +185,10 @@ fun EventsFormScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
+    if(!showEditForm.value && existingEvent != null) {
+        Scaffold(topBar = {
             TopAppBar(
-                title = { Text(text = if (existingEvent == null) "Agregar Evento" else "Actualizar Evento", color = Color.White) },
+                title = { Text(text = "Eventos", color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = {
                         navController.popBackStack()
@@ -183,163 +202,235 @@ fun EventsFormScreen(
                 },
                 backgroundColor = backgroundColor,
             )
-        },
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            verticalArrangement = Arrangement.Top
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
+        }) { innerPadding ->
+            Column (
                 modifier = Modifier
-                    .padding(horizontal = 20.dp)
-                    .padding(top = 40.dp)
-            ) {
-                Text(
-                    text = "Fecha:",
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(end = 5.dp)
-                )
-                Text(text = selectedDate, modifier = Modifier.padding(end = 5.dp))
-                CalendarDialog(
-                    state = calendarState,
-                    config = CalendarConfig(
-                        yearSelection = true,
-                        monthSelection = true,
-                        style = CalendarStyle.MONTH,
-                        disabledDates = disabledDates,
-                        boundary = calendarBoundary,
-                    ),
-                    selection = CalendarSelection.Date { newDate ->
-                        selectedLocalDate = newDate
-                        val date =
-                            Date.from(newDate.atStartOfDay(ZoneId.systemDefault()).toInstant())
-                        val dateString =
-                            SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(date)
-                        selectedDate = dateString
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                verticalArrangement = Arrangement.Top
+            ){
+                Row (
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp)
+                        .padding(top = 40.dp)
+                ){
+                    Button(onClick = { confirmParticipationHandler() }, modifier = Modifier.fillMaxWidth()) {
+                        Icon(painter = painterResource(id = R.drawable.calendar_today), contentDescription = "Confirmar")
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(text = "Confirmar participación")
                     }
-                )
-                Button(onClick = {
-                    calendarState.show()
-                }) {
-                    Text(text = "Seleccionar fecha")
+                }
+                Row (
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp)
+                        .padding(top = 40.dp)
+                ){
+                    Button(onClick = { showEditForm.value = true }, modifier = Modifier.fillMaxWidth()) {
+                        Icon(painter = painterResource(id = R.drawable.add), contentDescription = "Editar")
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(text = "Editar evento")
+                    }
                 }
             }
-            Text(
-                text = if (selectedDateError) "Fecha es requerida" else "",
-                color = Color.Red,
-                modifier = Modifier
-                    .padding(horizontal = 20.dp)
-            )
+        }
+    }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .padding(horizontal = 20.dp)
-            ) {
-                Text(
-                    text = "Hora:",
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(end = 5.dp)
-                )
-                Text(text = selectedTime, modifier = Modifier.padding(end = 5.dp))
-                ClockDialog(
-                    state = clockState,
-                    selection = ClockSelection.HoursMinutes { hours, minutes ->
-                        val tmpSelectedLocalTime = LocalTime.of(hours, minutes, 0)
-                        selectedLocalTime = tmpSelectedLocalTime
-                        val localDateTime = LocalDateTime.of(LocalDate.now(), selectedLocalTime)
-                        val date =
-                            Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant())
-                        val dateString =
-                            SimpleDateFormat("hh:mm a", Locale.getDefault()).format(date)
-                        selectedTime = dateString
+    if(openConfirmationDialog.value) {
+            AlertDialog(
+                title = { Text("Exito!!") },
+                text = { Text("Hemos confirmado exitosamente tu participación") },
+                onDismissRequest = {
+                    openConfirmationDialog.value = false
+                    navController.popBackStack()
+                },
+                confirmButton = {
+                    Button(onClick = {
+                        openConfirmationDialog.value = false
+                        navController.popBackStack()
+                    }) {
+                        Text(text = "Entendido!")
+                    }
+                }
+            )
+    }
+    if(existingEvent == null || showEditForm.value) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(text = if (existingEvent == null) "Agregar Evento" else "Actualizar Evento", color = Color.White) },
+                    navigationIcon = {
+                        IconButton(onClick = {
+                            navController.popBackStack()
+                        }) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.arrow_back),
+                                contentDescription = "Regresar",
+                                tint = Color.White
+                            )
+                        }
                     },
-                    config = ClockConfig(
-                        is24HourFormat = false,
-                        defaultTime = selectedLocalTime
+                    backgroundColor = backgroundColor,
+                )
+            },
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                verticalArrangement = Arrangement.Top
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp)
+                        .padding(top = 40.dp)
+                ) {
+                    Text(
+                        text = "Fecha:",
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(end = 5.dp)
                     )
-                )
-                Button(onClick = {
-                    clockState.show()
-                }) {
-                    Text(text = "Seleccionar hora")
+                    Text(text = selectedDate, modifier = Modifier.padding(end = 5.dp))
+                    CalendarDialog(
+                        state = calendarState,
+                        config = CalendarConfig(
+                            yearSelection = true,
+                            monthSelection = true,
+                            style = CalendarStyle.MONTH,
+                            disabledDates = disabledDates,
+                            boundary = calendarBoundary,
+                        ),
+                        selection = CalendarSelection.Date { newDate ->
+                            selectedLocalDate = newDate
+                            val date =
+                                Date.from(newDate.atStartOfDay(ZoneId.systemDefault()).toInstant())
+                            val dateString =
+                                SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(date)
+                            selectedDate = dateString
+                        }
+                    )
+                    Button(onClick = {
+                        calendarState.show()
+                    }) {
+                        Text(text = "Seleccionar fecha")
+                    }
                 }
-            }
-            Text(
-                text = if (selectedTimeError) "Hora es requerida" else "",
-                color = Color.Red,
-                modifier = Modifier
-                    .padding(horizontal = 20.dp)
-            )
-
-            OutlinedTextField(
-                value = descripcion,
-                onValueChange = {
-                    descripcion = it
-                    validarDescripcion()
-                },
-                label = { Text("Descripción") },
-                isError = descripcionError,
-                supportingText = {
-                    if (descripcionError) {
-                        Text("Este campo es requerido")
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                maxLines = 3
-            )
-            OutlinedTextField(
-                value = ubicacion,
-                onValueChange = {
-                    ubicacion = it
-                    validarUbicacion()
-                },
-                label = { Text("Ubicación") },
-                isError = ubicacionError,
-                supportingText = {
-                    if (ubicacionError) {
-                        Text("Este campo es requerido")
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-            )
-            Button(
-                onClick = {
-                    handleSaveEvent()
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .padding(top = 20.dp),
-            ) {
-                Text(if (existingEvent == null) "Agregar Evento" else "Actualizar Evento", modifier = Modifier.padding(vertical = 5.dp))
-            }
-            if (openDialog.value) {
-                AlertDialog(
-                    onDismissRequest = {
-                        // Dismiss the dialog when the user clicks outside the dialog or on the back
-                        // button. If you want to disable that functionality, simply use an empty
-                        // onDismissRequest.
-                        openDialog.value = false
-                    },
-                    title = { Text(text = "Error") },
-                    text = { Text(text = "No se pudo realizar la acción, por favor intente de nuevo más tarde.") },
-                    confirmButton = {
-                        TextButton(onClick = { openDialog.value = false }) { Text("Ok") }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { openDialog.value = false }) { Text("Cerrar") }
-                    }
+                Text(
+                    text = if (selectedDateError) "Fecha es requerida" else "",
+                    color = Color.Red,
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp)
                 )
-            }
 
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp)
+                ) {
+                    Text(
+                        text = "Hora:",
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(end = 5.dp)
+                    )
+                    Text(text = selectedTime, modifier = Modifier.padding(end = 5.dp))
+                    ClockDialog(
+                        state = clockState,
+                        selection = ClockSelection.HoursMinutes { hours, minutes ->
+                            val tmpSelectedLocalTime = LocalTime.of(hours, minutes, 0)
+                            selectedLocalTime = tmpSelectedLocalTime
+                            val localDateTime = LocalDateTime.of(LocalDate.now(), selectedLocalTime)
+                            val date =
+                                Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant())
+                            val dateString =
+                                SimpleDateFormat("hh:mm a", Locale.getDefault()).format(date)
+                            selectedTime = dateString
+                        },
+                        config = ClockConfig(
+                            is24HourFormat = false,
+                            defaultTime = selectedLocalTime
+                        )
+                    )
+                    Button(onClick = {
+                        clockState.show()
+                    }) {
+                        Text(text = "Seleccionar hora")
+                    }
+                }
+                Text(
+                    text = if (selectedTimeError) "Hora es requerida" else "",
+                    color = Color.Red,
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp)
+                )
+
+                OutlinedTextField(
+                    value = descripcion,
+                    onValueChange = {
+                        descripcion = it
+                        validarDescripcion()
+                    },
+                    label = { Text("Descripción") },
+                    isError = descripcionError,
+                    supportingText = {
+                        if (descripcionError) {
+                            Text("Este campo es requerido")
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    maxLines = 3
+                )
+                OutlinedTextField(
+                    value = ubicacion,
+                    onValueChange = {
+                        ubicacion = it
+                        validarUbicacion()
+                    },
+                    label = { Text("Ubicación") },
+                    isError = ubicacionError,
+                    supportingText = {
+                        if (ubicacionError) {
+                            Text("Este campo es requerido")
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                )
+                Button(
+                    onClick = {
+                        handleSaveEvent()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                        .padding(top = 20.dp),
+                ) {
+                    Text(if (existingEvent == null) "Agregar Evento" else "Actualizar Evento", modifier = Modifier.padding(vertical = 5.dp))
+                }
+                if (openDialog.value) {
+                    AlertDialog(
+                        onDismissRequest = {
+                            // Dismiss the dialog when the user clicks outside the dialog or on the back
+                            // button. If you want to disable that functionality, simply use an empty
+                            // onDismissRequest.
+                            openDialog.value = false
+                        },
+                        title = { Text(text = "Error") },
+                        text = { Text(text = "No se pudo realizar la acción, por favor intente de nuevo más tarde.") },
+                        confirmButton = {
+                            TextButton(onClick = { openDialog.value = false }) { Text("Ok") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { openDialog.value = false }) { Text("Cerrar") }
+                        }
+                    )
+                }
+
+            }
         }
     }
 }
