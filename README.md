@@ -12,3 +12,4 @@ Link del tablero en trello: [Tablero](https://trello.com/invite/b/673e9038aa4c47
 - De Paz Velásquez Vicente Daniel DV192307
 - Duran Meléndez Gilberto Emmanuel DM192201
 - Gutiérrez Borja Rafael Armando GB192205
+- Roger Eduardo Vasquez Portillo VP223250
