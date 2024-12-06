@@ -4,7 +4,7 @@ import androidx.navigation.NavType
 import androidx.navigation.navArgument
 
 /**
- * Contrato para información necesaria sobre cada destino de navegación
+ * Contract for information needed on every navigation destination
  */
 interface Destination {
     val route: String

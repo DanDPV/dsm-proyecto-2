@@ -279,7 +279,7 @@ fun EventsFormScreen(
         }
     }
 
-    // Diálogo para confirmar participación
+    // Confirmar participación
     if(openConfirmationDialog.value) {
         AlertDialog(
             title = { Text("Exito!!") },
@@ -475,7 +475,7 @@ fun EventsFormScreen(
         }
     }
 
-    // Diálogo para agregar un comentario
+    // Agregar comentario
     if (openCommentDialog.value) {
         var commentText by remember { mutableStateOf("") }
         AlertDialog(
