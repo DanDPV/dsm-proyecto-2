@@ -47,6 +47,7 @@ import com.google.firebase.ktx.Firebase
 import com.udb.comunidad_dsm.db.getEventById
 import com.udb.comunidad_dsm.ui.BottomNavigationBar
 import com.udb.comunidad_dsm.ui.EventsFormScreen
+import com.udb.comunidad_dsm.ui.EventsRecordScreen
 import com.udb.comunidad_dsm.ui.EventsScreen
 import com.udb.comunidad_dsm.ui.HomeScreen
 import com.udb.comunidad_dsm.ui.LoginScreen
@@ -235,6 +236,14 @@ fun App(
                         navigateToEventForm = { id ->
                             navController.navigateToEventForm(id)
                         },
+                    )
+                }
+                composable(route = EventsRecord.route) {
+                    EventsRecordScreen(
+                        navigateTo = { route ->
+                            navController.navigateSingleTopTo(route)
+                        },
+                        auth = auth
                     )
                 }
 

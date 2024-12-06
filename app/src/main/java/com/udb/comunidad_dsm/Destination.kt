@@ -29,6 +29,10 @@ object Home : Destination {
     override val route = "home"
 }
 
+object EventsRecord : Destination {
+    override val route = "events-record"
+}
+
 object HomeMenu: DestinationMenu {
     override val route = Home.route
     override val icon = R.drawable.home_white
@@ -77,7 +81,13 @@ object ConfigurationMenu: DestinationMenu {
     override val title = "Usuario"
 }
 
-val screens = listOf(Home, Login, Events, Configuration, EventsForm)
-val menuScreens = listOf(HomeMenu, EventsMenu, ConfigurationMenu)
+object EventsRecordMenu : DestinationMenu {
+    override val route = EventsRecord.route
+    override val icon = R.drawable.calendar_today_white
+    override val title = "Historial de eventos"
+}
+
+val screens = listOf(Home, Login, Events, EventsRecord, Configuration, EventsForm)
+val menuScreens = listOf(HomeMenu, EventsMenu, EventsRecordMenu, ConfigurationMenu)
 val fabScreens = listOf(Events)
 val fabActions = listOf(EventsFABAction)

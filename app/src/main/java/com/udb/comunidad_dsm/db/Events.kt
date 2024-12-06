@@ -10,6 +10,7 @@ import com.udb.comunidad_dsm.db.dto.Event
 import com.udb.comunidad_dsm.db.dto.EventConfirmation
 import com.udb.comunidad_dsm.db.dto.EventForm
 import com.udb.comunidad_dsm.parseIsoStringToDateAndTime
+import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.LocalTime
@@ -155,4 +156,22 @@ fun confirmParticipation(eventId: String, userId: String, onSuccess: () -> Unit,
                 onSuccess()
             }
         }
+}
+
+fun getEventsWithConfirmation(userId: String, onSuccess: () -> Unit,onFailure: (Exception) -> Unit){
+    val firestore = FirebaseFirestore.getInstance()
+
+    val refs = firestore.collection(EVENTS_CONFIRMATIONS)
+    val query = refs.where(Filter.equalTo("userId", userId))
+
+    query.get().
+    addOnSuccessListener { results ->
+        if(!results.documents.isEmpty()){
+            val snapshot = firestore.collection(EVENTS_COLLECTION)
+                .document()
+                .get()
+            
+        }
+
+    }
 }
