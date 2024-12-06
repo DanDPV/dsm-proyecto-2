@@ -1,5 +1,6 @@
 package com.udb.comunidad_dsm.ui
 
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,6 +29,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.firebase.auth.FirebaseAuth
 import com.udb.comunidad_dsm.db.dto.EventForm
+import com.udb.comunidad_dsm.db.getEventsWithConfirmation
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @Composable
 fun EventsRecordScreen(
@@ -38,13 +42,25 @@ fun EventsRecordScreen(
     var events by remember { mutableStateOf<List<EventForm>?>(null) }
     var isLoading by remember { mutableStateOf(true) }
 
-    LaunchedEffect(Unit) {
+    val inputDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    val outputDateFormat = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
 
+    LaunchedEffect(Unit) {
+        if(usuario != null) {
+            getEventsWithConfirmation(
+                usuario.uid,
+                onSuccess = { eventList ->
+                    events = eventList
+                    isLoading = false
+                    Log.d("Gil", "onSuccess")
+                },
+                {})
+        }
     }
     Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center) {
         Row {
             Text(
-                "Bienvenido",
+                "Tus eventos confirmados",
                 fontWeight = FontWeight.Bold,
                 fontSize = 32.sp,
                 textAlign = TextAlign.Start,
@@ -53,12 +69,61 @@ fun EventsRecordScreen(
         }
         Row {
             Text(
-                "Está es la app para los eventos de tu comunidad.",
+                "Un listado de eventos a los que asististe.",
                 fontSize = 20.sp,
                 textAlign = TextAlign.Start,
                 modifier = Modifier.padding(horizontal = 35.dp)
             )
             Spacer(modifier = Modifier.height(100.dp))
+        }
+        Row(modifier = Modifier.padding(horizontal = 35.dp)) {
+            when {
+                isLoading -> {
+                    // Show a loading indicator
+                    CircularProgressIndicator()
+                }
+
+                events.isNullOrEmpty() -> {
+                    // Show a message if no events are available
+                    Text("No se encontraron eventos.")
+                }
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier
+                            .padding(top = 50.dp)
+                        //.background(color = androidx.compose.ui.graphics.Color.Blue)
+                    ) {
+                        items(events!!.size) { index ->
+                            val event = events!![index]
+                            if (index > 0) {
+                                Divider(
+                                    color = Color.Gray,
+                                    thickness = 1.dp
+                                )
+                            }
+
+                            val formattedDate = try {
+                                val date = inputDateFormat.parse(event.localDate.toString()) // Parsear fecha original
+                                outputDateFormat.format(date) // Formatear al nuevo formato
+                            } catch (e: Exception) {
+                                "Fecha inválida" // Manejar errores si la fecha es incorrecta
+                            }
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 10.dp)
+                                    .padding(horizontal = 16.dp)
+                            ) {
+                                BasicText(event.description, modifier = Modifier.weight(1f))
+                                BasicText(formattedDate, modifier = Modifier.weight(1f))
+                            }
+                            Divider(color = Color.Gray, thickness = 1.dp)
+                        }
+                    }
+                }
+            }
         }
     }
 }
