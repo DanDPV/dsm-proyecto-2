@@ -1,10 +1,7 @@
 package com.udb.comunidad_dsm
 
-import androidx.compose.runtime.Composable
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
-import com.udb.comunidad_dsm.ui.HomeScreen
-import com.udb.comunidad_dsm.ui.LoginScreen
 
 /**
  * Contract for information needed on every navigation destination
@@ -13,17 +10,17 @@ interface Destination {
     val route: String
 }
 
-interface DestinationMenu: Destination {
+interface DestinationMenu : Destination {
     val icon: Int
     val title: String
 }
 
-interface FABAction: Destination {
+interface FABAction : Destination {
     val action: (navigateTo: (route: String) -> Unit) -> Unit
 }
 
 /**
- * Navigation destinations
+ * Destinos de navegación
  */
 object Home : Destination {
     override val route = "home"
@@ -33,7 +30,7 @@ object EventsRecord : Destination {
     override val route = "events-record"
 }
 
-object HomeMenu: DestinationMenu {
+object HomeMenu : DestinationMenu {
     override val route = Home.route
     override val icon = R.drawable.home_white
     override val title = "Inicio"
@@ -52,21 +49,19 @@ object EventsForm : Destination {
     const val idTypeArg = "id"
     val routeWithArgs = "${route}/{${idTypeArg}}"
     val arguments = listOf(
-        navArgument(idTypeArg) { type = NavType.StringType
-        nullable = true
-        }
+        navArgument(idTypeArg) { type = NavType.StringType; nullable = true }
     )
 }
 
-object EventsMenu: DestinationMenu {
+object EventsMenu : DestinationMenu {
     override val route = Events.route
     override val icon = R.drawable.calendar_today_white
     override val title = "Eventos"
 }
 
-object EventsFABAction: FABAction {
+object EventsFABAction : FABAction {
     override val route = Events.route
-    override val action: ((String) -> Unit) -> Unit = {
+    override val action: (navigateTo: (route: String) -> Unit) -> Unit = {
         it(EventsForm.route)
     }
 }
@@ -75,7 +70,7 @@ object Configuration : Destination {
     override val route = "configuration"
 }
 
-object ConfigurationMenu: DestinationMenu {
+object ConfigurationMenu : DestinationMenu {
     override val route = Configuration.route
     override val icon = R.drawable.person_white
     override val title = "Usuario"
@@ -87,7 +82,19 @@ object EventsRecordMenu : DestinationMenu {
     override val title = "Historial de eventos"
 }
 
-val screens = listOf(Home, Login, Events, EventsRecord, Configuration, EventsForm)
+/**
+ * Nueva pantalla de comentarios
+ */
+object Comments : Destination {
+    override val route = "comments"
+    const val eventIdArg = "eventId"
+    val routeWithArgs = "${route}/{${eventIdArg}}"
+    val arguments = listOf(
+        navArgument(eventIdArg) { type = NavType.StringType }
+    )
+}
+
+val screens = listOf(Home, Login, Events, EventsRecord, Configuration, EventsForm, Comments)
 val menuScreens = listOf(HomeMenu, EventsMenu, EventsRecordMenu, ConfigurationMenu)
 val fabScreens = listOf(Events)
 val fabActions = listOf(EventsFABAction)
