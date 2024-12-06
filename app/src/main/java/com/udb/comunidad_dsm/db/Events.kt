@@ -158,7 +158,7 @@ fun confirmParticipation(eventId: String, userId: String, onSuccess: () -> Unit,
         }
 }
 
-fun getEventsWithConfirmation(userId: String, onSuccess: () -> Unit,onFailure: (Exception) -> Unit){
+fun getEventsWithConfirmation(userId: String, onSuccess: (List<EventForm>) -> Unit, onFailure: (Exception) -> Unit){
     val firestore = FirebaseFirestore.getInstance()
 
     val refs = firestore.collection(EVENTS_CONFIRMATIONS)
@@ -166,12 +166,31 @@ fun getEventsWithConfirmation(userId: String, onSuccess: () -> Unit,onFailure: (
 
     query.get().
     addOnSuccessListener { results ->
-        if(!results.documents.isEmpty()){
-            val snapshot = firestore.collection(EVENTS_COLLECTION)
-                .document()
-                .get()
-            
+        if(results.documents.isNotEmpty()){
+            var eventsWithConfirmation = mutableListOf<EventForm>()
+            val pushElements = { el: EventForm ->  eventsWithConfirmation.add(el)}
+            results.documents.mapNotNull { el ->
+                val document = el.toObject(EventConfirmation::class.java)
+                if(document != null) {
+                    firestore.collection(EVENTS_COLLECTION)
+                        .document(document.eventId)
+                        .get()
+                        .addOnSuccessListener { doc ->
+                            val event = doc.toObject(Event::class.java)
+                            Log.d("Gilberto", "documentGot")
+                            event?.description?.let { Log.d("Gilberto", it) }
+                            val eventForm = EventForm(
+                                location = event?.location ?: "",
+                                description = event?.description ?: "",
+                                localDate = LocalDate.now(),
+                                localTime = LocalTime.now(),
+                                id = document.eventId,
+                            )
+                            pushElements(eventForm)
+                        }
+                }
+            }
+            onSuccess(eventsWithConfirmation)
         }
-
     }
 }
