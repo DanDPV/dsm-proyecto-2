@@ -1,17 +1,10 @@
 package com.udb.comunidad_dsm.ui
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.util.Range
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.Icon
 import androidx.compose.material.TopAppBar
 import androidx.compose.material3.AlertDialog
@@ -31,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -45,8 +39,10 @@ import com.maxkeppeler.sheets.clock.ClockDialog
 import com.maxkeppeler.sheets.clock.models.ClockConfig
 import com.maxkeppeler.sheets.clock.models.ClockSelection
 import com.udb.comunidad_dsm.R
-import com.udb.comunidad_dsm.db.addEvent
+import com.udb.comunidad_dsm.db.addComment
 import com.udb.comunidad_dsm.db.confirmParticipation
+import com.udb.comunidad_dsm.db.dto.Comment
+import com.udb.comunidad_dsm.db.addEvent
 import com.udb.comunidad_dsm.db.dto.Event
 import com.udb.comunidad_dsm.db.dto.EventForm
 import com.udb.comunidad_dsm.db.updateEvent
@@ -70,7 +66,7 @@ fun EventsFormScreen(
     navController: NavHostController,
     existingEvent: EventForm? = null,
 ) {
-    val usuario = auth.currentUser;
+    val usuario = auth.currentUser
     var selectedDate by remember { mutableStateOf<String>("") }
     var selectedLocalDate by remember { mutableStateOf<LocalDate>(existingEvent?.localDate ?: LocalDate.now()) }
     var selectedDateError by remember { mutableStateOf(false) }
@@ -97,6 +93,11 @@ fun EventsFormScreen(
 
     var showEditForm = remember { mutableStateOf(false) }
     var openConfirmationDialog = remember { mutableStateOf(false) }
+
+    // Nuevos estados para comentar
+    val openCommentDialog = remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
     fun validarDescripcion() {
         descripcionError = descripcion.isEmpty()
     }
@@ -165,6 +166,22 @@ fun EventsFormScreen(
         }
     }
 
+    fun shareEvent(event: EventForm?) {
+        if (event != null) {
+            val shareIntent = Intent().apply {
+                action = Intent.ACTION_SEND
+                putExtra(
+                    Intent.EXTRA_TEXT,
+                    "Evento: ${event.description}\n" +
+                            "Fecha: ${event.localDate}\n" +
+                            "Ubicación: ${event.location}"
+                )
+                type = "text/plain"
+            }
+            context.startActivity(Intent.createChooser(shareIntent, "Compartir evento"))
+        }
+    }
+
     LaunchedEffect(existingEvent) {
         if (existingEvent != null) {
             val date =
@@ -172,7 +189,7 @@ fun EventsFormScreen(
             val dateString =
                 SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(date)
             selectedDate = dateString
-            selectedLocalDate = existingEvent.localDate // Parse ISO date
+            selectedLocalDate = existingEvent.localDate
             selectedLocalTime = existingEvent.localTime
             val localDateTime = LocalDateTime.of(LocalDate.now(), selectedLocalTime)
             val dateTime =
@@ -185,6 +202,7 @@ fun EventsFormScreen(
         }
     }
 
+    // Vista principal (no edición)
     if(!showEditForm.value && existingEvent != null) {
         Scaffold(topBar = {
             TopAppBar(
@@ -233,28 +251,55 @@ fun EventsFormScreen(
                         Text(text = "Editar evento")
                     }
                 }
+
+                // Botón Comentar (debajo de Editar)
+                Row (
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp)
+                        .padding(top = 40.dp)
+                ){
+                    Button(onClick = { openCommentDialog.value = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text(text = "Comentar")
+                    }
+                }
+
+                // Botón Compartir (debajo de Comentar)
+                Row (
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp)
+                        .padding(top = 40.dp)
+                ){
+                    Button(onClick = { shareEvent(existingEvent) }, modifier = Modifier.fillMaxWidth()) {
+                        Text(text = "Compartir")
+                    }
+                }
             }
         }
     }
 
+    // Diálogo para confirmar participación
     if(openConfirmationDialog.value) {
-            AlertDialog(
-                title = { Text("Exito!!") },
-                text = { Text("Hemos confirmado exitosamente tu participación") },
-                onDismissRequest = {
+        AlertDialog(
+            title = { Text("Exito!!") },
+            text = { Text("Hemos confirmado exitosamente tu participación") },
+            onDismissRequest = {
+                openConfirmationDialog.value = false
+                navController.popBackStack()
+            },
+            confirmButton = {
+                Button(onClick = {
                     openConfirmationDialog.value = false
                     navController.popBackStack()
-                },
-                confirmButton = {
-                    Button(onClick = {
-                        openConfirmationDialog.value = false
-                        navController.popBackStack()
-                    }) {
-                        Text(text = "Entendido!")
-                    }
+                }) {
+                    Text(text = "Entendido!")
                 }
-            )
+            }
+        )
     }
+
+    // Vista de edición o creación de evento
     if(existingEvent == null || showEditForm.value) {
         Scaffold(
             topBar = {
@@ -414,9 +459,6 @@ fun EventsFormScreen(
                 if (openDialog.value) {
                     AlertDialog(
                         onDismissRequest = {
-                            // Dismiss the dialog when the user clicks outside the dialog or on the back
-                            // button. If you want to disable that functionality, simply use an empty
-                            // onDismissRequest.
                             openDialog.value = false
                         },
                         title = { Text(text = "Error") },
@@ -429,8 +471,53 @@ fun EventsFormScreen(
                         }
                     )
                 }
-
             }
         }
+    }
+
+    // Diálogo para agregar un comentario
+    if (openCommentDialog.value) {
+        var commentText by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { openCommentDialog.value = false },
+            title = { Text("Agregar Comentario") },
+            text = {
+                OutlinedTextField(
+                    value = commentText,
+                    onValueChange = { commentText = it },
+                    label = { Text("Comentario") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    if (existingEvent?.id != null) {
+                        val comment = Comment(
+                            eventId = existingEvent.id,
+                            userId = usuario?.uid ?: "",
+                            userName = usuario?.displayName ?: "Anónimo",
+                            content = commentText
+                        )
+                        addComment(
+                            comment,
+                            onSuccess = {
+                                openCommentDialog.value = false
+                                println("Comentario agregado exitosamente")
+                            },
+                            onFailure = { e ->
+                                println("Error al agregar comentario: ${e.message}")
+                            }
+                        )
+                    }
+                }) {
+                    Text("Guardar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { openCommentDialog.value = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 }
